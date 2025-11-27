@@ -17,9 +17,9 @@ V_min = -V_max #для задання швидкості
 
 g = [15,39]
 
-w = 0.7
-wp = 2
-wg = 3
+w = 0.7 #w = 0.3 w = 0.3 w = 0.9 w<1
+wp = 1  #wp = 1  wp = 4  wp = 1  wp 1..5
+wg = 3  #wg = 4  wg = 1  wg = 1  wg 1..5
 
 class Ant:
     def __init__(self,n, x, y, vx, vy, px, py, rp, rg):
@@ -109,9 +109,27 @@ ax.set_ylim(y_min, y_max)
 
 swarm = generate_swarm(N)
 
+def last(swarm, T):
+    t = 0
+    while t < T:
+        move_phase(swarm)
+        t +=1
+    ax.scatter(x_max, y_max, color = "white")
+    ax.scatter(x_min, y_min, color = "white")
+    x = np.linspace(x_min, x_max, 100)
+    y = np.linspace(y_min, y_max, 100)
+    X, Y = np.meshgrid(x, y)
+    t = func_np(X, Y)
+    ax.imshow(t, extent=[x_min, x_max, y_min, y_max], origin='lower',
+    aspect='equal')
+    for a in swarm:
+            # a.stats()
+            ax.scatter(a.x, a.y, color = "orange")
+    plt.show()
+    
+
 def update(frame):
     ax.clear()
-    print(frame)
     ax.set_title(f"Слайд {frame}")
     ax.scatter(x_max, y_max, color = "white")
     ax.scatter(x_min, y_min, color = "white")
@@ -126,8 +144,11 @@ def update(frame):
             # a.stats()
             ax.scatter(a.x, a.y, color = "orange")
 
-ani = FuncAnimation(fig, update, frames=T, interval=500)
-plt.show()
+# ani = FuncAnimation(fig, update, frames=T, interval=500)
+# plt.show()
+
+last(swarm, T)
+
 print(g)
 print(func(g[0], g[1]))
 print(func_np(g[0], g[1]))
