@@ -6,20 +6,26 @@ from matplotlib.colors import Normalize
 import numpy as np
 
 N = 50 #кількість "мурах"
-T = 100 #кількість переміщень
+T = 1000 #кількість переміщень
 
 x_min = -4
 x_max = 4
 y_min = -4
 y_max = 4
-V_max = 0.1
+V_max = 0.5
 V_min = -V_max #для задання швидкості
 
 g = [15,39]
 
-w = 0.7 #w = 0.3 w = 0.3 w = 0.9 w<1
-wp = 1  #wp = 1  wp = 4  wp = 1  wp 1..5
-wg = 3  #wg = 4  wg = 1  wg = 1  wg 1..5
+F = 2
+
+w = 0.3 #w = 0.3 w = 0.3 w = 0.9 w<1
+wp = 4 #wp = 1  wp = 4  wp = 1  wp 1..5
+wg = 1  #wg = 4  wg = 1  wg = 1  wg 1..5
+
+SEED = 69 # або будь-яке інше число
+random.seed(SEED)
+np.random.seed(SEED)
 
 class Ant:
     def __init__(self,n, x, y, vx, vy, px, py, rp, rg):
@@ -47,7 +53,7 @@ class Ant:
         if self.y < y_min:
             self.vy = -self.vy
             self.y = x_min
-        if func(self.x, self.y) < func(self.px, self.py):
+        if func(self.x, self.y, F) < func(self.px, self.py, F):
             self.px = self.x
             self.py = self.y
         self.vx = w*self.vx + self.rp*wp*(self.px - self.x) + self.rg*wg*(g[0] - self.x)
@@ -64,17 +70,21 @@ class Ant:
         print(self.n, self.x, self.y, self.vx, self.vy, self.px, self.py)
 
 
-def func(x, y):
-    return (0.2 * (abs(x) + abs(y)) 
-            - 0.6 * math.cos(3*x + y) 
-            - 0.5 * math.sin(x*y) 
-            - 0.4 * abs(math.cos(2*x - y)))
+def func(x, y, f = 1):
+    if f == 1:
+        return (0.2 * (abs(x) + abs(y)) 
+                - 0.6 * math.cos(3*x + y) 
+                - 0.5 * math.sin(x*y) 
+                - 0.4 * abs(math.cos(2*x - y)))
+    return 0.05 * ((x - 1.5)**2 + (y + 1)**2) - math.cos(2*x + math.sin(2*y))
 
-def func_np(x, y):
-    return (0.2 * (np.abs(x) + np.abs(y)) 
-            - 0.6 * np.cos(3*x + y) 
-            - 0.5 * np.sin(x*y) 
-            - 0.4 * np.abs(np.cos(2*x - y)))
+def func_np(x, y, f):
+    if f == 1:
+        return (0.2 * (np.abs(x) + np.abs(y)) 
+                - 0.6 * np.cos(3*x + y) 
+                - 0.5 * np.sin(x*y) 
+                - 0.4 * np.abs(np.cos(2*x - y)))
+    return 0.05 * ((x - 1.5)**2 + (y + 1)**2) - np.cos(2*x + np.sin(2*y))
 
 def generate_swarm(num):
     swarm = []
@@ -82,12 +92,12 @@ def generate_swarm(num):
     for i in range(num):
         xi = random.uniform(x_min, x_max)
         yi = random.uniform(y_min, y_max)
-        if func(xi, yi) < func(g[0],g[1]):
+        if func(xi, yi, F) < func(g[0],g[1], F):
             g = [xi, yi]
         Vi1 = random.uniform(V_min, V_max)
         Vi2 = random.uniform(V_min, V_max)
         rp = random.uniform(0,1)
-        rg = 1-rp
+        rg = random.uniform(0,1)
         swarm.append(Ant(i+1, xi, yi, Vi1, Vi2, xi, yi, rp, rg))
     return swarm
 
@@ -97,9 +107,13 @@ def move_phase(swarm):
         # print(a.n)
         # print([a.x, a.y], g)
         # print(func(a.x, a.y), func(g[0],g[1]))
-        if func(a.x, a.y) < func(g[0],g[1]):
+        if func(a.x, a.y, F) < func(g[0],g[1], F):
             g = [a.x, a.y]
         # print(g)
+        rp = random.uniform(0,1)
+        rg = random.uniform(0,1)
+        a.rp = rp
+        a.rg = rg
         a.move()
 
 fig, ax = plt.subplots()
@@ -119,7 +133,7 @@ def last(swarm, T):
     x = np.linspace(x_min, x_max, 100)
     y = np.linspace(y_min, y_max, 100)
     X, Y = np.meshgrid(x, y)
-    t = func_np(X, Y)
+    t = func_np(X, Y, F)
     ax.imshow(t, extent=[x_min, x_max, y_min, y_max], origin='lower',
     aspect='equal')
     for a in swarm:
@@ -136,7 +150,7 @@ def update(frame):
     x = np.linspace(x_min, x_max, 100)
     y = np.linspace(y_min, y_max, 100)
     X, Y = np.meshgrid(x, y)
-    t = func_np(X, Y)
+    t = func_np(X, Y, F)
     ax.imshow(t, extent=[x_min, x_max, y_min, y_max], origin='lower',
     aspect='equal')
     move_phase(swarm)
@@ -149,13 +163,12 @@ def update(frame):
 
 last(swarm, T)
 
-print(g)
-print(func(g[0], g[1]))
-print(func_np(g[0], g[1]))
+print("Ідеальна точка", g)
+print("Значення функції",func(g[0], g[1], F))
 x = np.linspace(x_min, x_max, 100)
 y = np.linspace(y_min, y_max, 100)
 X, Y = np.meshgrid(x, y)
-t = func_np(X, Y)
+t = func_np(X, Y, F)
 plt.imshow(t, extent=[x_min, x_max, y_min, y_max], origin='lower', aspect='equal')
 plt.scatter(g[0],g[1], color = "pink")
 plt.show()
